@@ -1,0 +1,26 @@
+[project]
+name = "YelpRecommenderSystem"
+version = "1.0.0"
+description = "Recommender System in PySpark using Yelp dataset."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+  {name = "Luca Bellani"},
+  {name = "Andrea Longoni"},
+]
+classifiers = [
+  "Programming Language :: Python",
+  "Framework :: IPython",
+  "Framework :: Jupyter",
+  "License :: OSI Approved :: MIT License"
+]
+
+dependencies = [
+  "notebook",
+  "pyspark",
+  "kaggle",
+]
+
+[project.urls]
+Repository = "https://github.com/lukebella/YelpRecommenderSystem"
