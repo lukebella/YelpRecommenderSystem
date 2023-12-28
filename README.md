@@ -6,10 +6,9 @@
 This work focuses on recommending businesses to an user retrieved
 from [Yelp Dataset](https://www.kaggle.com/datasets/yelp-dataset/yelp-dataset). The first part focuses on manipulating data to
 calculate the review rating in a more clever way. The collaborative filtering
-based on user similarity was later implemented. In the final section the UV
-decomposition phase was carried out: the performance of this dimensional
+based on user similarity was later implemented. In the final section the UV Decomposition phase was carried out: the performance of this dimensional
 reduction approach (written from scratch) was compared with that of the
-spark.mllib.ALS through training and testing phases.
+`spark.mllib.ALS` through training and testing phases.
 
 ## Features
 

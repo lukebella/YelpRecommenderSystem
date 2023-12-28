@@ -14,7 +14,7 @@
 \DeclareMathOperator*{\argmin}{argmin}
 \begin{document}
 
-\title{\textbf{Recommendation on Yelp Businesses}}
+\title{\textbf{Recommendation of Yelp Businesses}}
 \author{Luca Bellani}
 \author{Andrea Longoni}
 \affil{Algorithms for Massive Dataset}
@@ -45,10 +45,10 @@ Yelp provides JSON files regarding principally businesses, users and reviews. Fo
 \texttt{yelp\_academic\_dataset\_user}. Once the \texttt{Spark} session is started, the function \texttt{from\_json\_to\_RDD()} converts the JSON file to a resilient distributed dataset (RDD), used for spreading across the nodes of the cluster collections of data \cite{rdd}.
 %take 1/600 of the users...
 The features of the three RDDs have been reduced, since we have discarded the columns that are not worthwhile, whereas the rows have been converted in a tuple format. 
-Since the RDD keys are strings, we use the hash function SHA1 to reduce the amount of memory. This process permits to obtain integer values for \texttt{business\_id, user\_id} and \texttt{review\_id}. The cardinality of either users, reviews or business does not go beyond $2^{32}$ (the maximum value representable by \texttt{int} type), thus we can use an integer to store our unique keys, occupying $4$ bytes each (instead of keeping $20$ bytes that the hash function generates). 
+Since the RDD keys are strings, we use the hash function SHA1 to reduce the amount of memory. This process permits to obtain integer values for \texttt{business\_id, user\_id} and \texttt{review\_id}. The cardinality of either users, reviews or business does not go beyond $2^{32}$ (the maximum value representable by \texttt{int} type), thus we can use an integer to store our unique keys: the amount of memory they occupy is $4$ bytes each (instead of keeping $20$ bytes that the hash function generates). 
 
 \subsection{Recalculation of the ratings}
-In a big data recommendation world, like Netflix or Amazon, the items are suggested by fetching and managing all possible information about its contents. The datasets considered in this report are populated with a lot of particular and efficient attributes: the review RDD provides columns such as \texttt{useful}, \texttt{funny} and \texttt{cool}. These fields lend us to a more accurate rating of the review, thus increasing (or decreasing) its star valuation and consequently the user consideration of the business. The item \texttt{fans}, belonging to the user dataset, is meaningful in terms of how much a reviewer could influence the opinion of someone interested in that particular business. These info are used for recalculating the ratings of each review, hence they should enhance their relevance. The decision of whether add or subtract $\Delta$, which is the value of how the review is significant, is determined by the number of the stars: if it is less than $3$, meaning that the business has not been appreciated by the user, the amount is decreased else viceversa.  The formula to determine $\Delta$ is the following:
+In a big data recommendation world, like Netflix or Amazon, the items are suggested by fetching and managing all possible information about its contents. The datasets considered in this report are populated with a lot of particular and efficient attributes: the review RDD provides columns such as \texttt{useful}, \texttt{funny} and \texttt{cool}. These fields lend us to a more accurate assessment of the review, thus to increase (or decrease) its star valuation and consequently the user consideration on the business. The item \texttt{fans}, belonging to the user dataset, is meaningful in terms of how much a reviewer could influence the opinion of someone interested in that particular business. These info are used for recalculating the ratings of each review, hence they should enhance their relevance. The decision of whether add or subtract $\Delta$, which is the value of how the review is significant, is determined by the number of the stars: if it is less than $3$, meaning that the business has not been appreciated by the user, the amount is decreased else viceversa.  The formula to determine $\Delta$ is the following:
 
 $$
   \Delta = \dfrac{1}{2} 
@@ -74,6 +74,7 @@ The main principle of this formula is the relevance of how useful and influent t
 This approach is applied by mapping the reviews in order to take  \texttt{useful}, \texttt{funny} and \texttt{cool} and reducing by the \texttt{business\_id} to get the maxima values. Next, this resultant RDD is joined with the \texttt{user\_id} and the number of fans of the user. Finally, the overall is calculated after recovering the maximum number of fans.
 
 \section{Basic Recommendation}
+\label{sec:basicrec}
 In order to recommend an item properly, the recalculation of the rating is not sufficient. For example, if a business has only few but excellent reviews, it is not guaranteed that the considered place is magnificent too. Before suggesting the locations to the users, they have been filtered out the businesses whose number of reviews are below to a certain threshold. Next, for each business, it has been carried out the average of the whole set of its reviews and sorted by the star rate. We have tried to simulate a situation called "Cold Start", that is a potential case in which there are no information about the user experience. For instance, if a new subscriber enters in a platform and there are no details about his status and tastes, the suggestions are necessarily given by retrieving data from another customers. 
 
 \section{Collaborative Filtering}
@@ -81,7 +82,7 @@ The process of identifying similar users and recommending what similar users lik
 
 In this project it has been implemented this approach according to the Cosine distance, since the Jaccard one works better with binary values. 
 
-The Spark execution has been organized in two functions: \texttt{cosine\_dist()} and \texttt{collaborative\_filtering()}. Both method takes a \texttt{user\_id} as an argument, that we called $U$. 
+The Spark execution has been organized in two functions: \texttt{cosine\_dist()} and \texttt{collaborative\_filtering()}. Both methods take a \texttt{user\_id} as an argument, that we called $U$. 
     \subsection{cosine\_dist()}
     This method outputs the computation of the formula below:
     $$
@@ -120,14 +121,15 @@ $$
 We shall use $m_{ij}$, $u_{ij}$, and $v_{ij}$ for the entries in row $i$ and column $j$ of $M$, $U$, and $V$, respectively.
 Here, $\sum_j$ and $\sum_i$ are shorthands for the sum over all $j$ and $i$ such that $m_{rj}$ and $m_{is}$ are nonblank. $\sum_{k \neq s}$ and $\sum_{k \neq r}$ are the sums over all values of $k$ between $1$ and $d$, except for $s$ and $r$ respectively. 
     \subsection{Implementation}
-    In the first step we create the matrix $U$, with $m$ rows and $d$ columns (which in the program is called \texttt{rank}),  and $V$, with $n$ columns and $d$ rows. All the entries of both of them are initially $1$. Another test is performed initializing all the entries with the average value of all ratings in the dataset. However, this choice implicates that the elements of $U$ and $V$ should be $\sqrt{average\_value/rank}$. %or avg_value. 
+    In the first step we create the matrix $U$, with $m$ rows and $d$ columns (which in the program is called \texttt{rank}),  and $V$, with $n$ columns and $d$ rows. All the entries of both of them are initially $1$. Another test is performed by initializing all the $UV$ entries to the average value of all the nonblank ratings in the dataset. However, this choice implicates that the elements of $U$ and $V$ should be $\sqrt{average\_value/rank}$.
+    
     Then we divide the review dataset into training and test sets, with the aim of establishing the estimation of this model. 
     The Spark alternation procedure of calculating the entries of $U$ and $V$ is based on broadcasting these two matrices to the nodes of the cluster, since at every stage we need the updated values. 
     The two delegated functions, \texttt{update\_U} and \texttt{update\_V}, reflect the two general formulas:
     \begin{itemize}
         \item take those reviews in the training set belonging to the user/business;
         \item looping on the number of dimensions, calculate the formula for each nonblank entry of $M$ pertained to the user/business;
-        \item output the tuple of the id of user/business and its updated vector;
+        \item output the tuple of the user/business id and its updated vector;
         \item after the map execution of one of the two functions, the new matrix must be broadcasted, because its data are necessary for recomputing the update of the other table. 
     \end{itemize}
 
@@ -135,10 +137,10 @@ Here, $\sum_j$ and $\sum_i$ are shorthands for the sum over all $j$ and $i$ such
 
 \subsection{ALS}
 ALS is a class of \texttt{pyspark.mllib.recommendation} \cite{als} that uses the alternating least squared technique \cite{ALS2} to predict the missing entries of an utility matrix. The method \texttt{ALS.train()} requires a training set of type RDD with integer keys, thus the pre-processing of hashing keys suits us. 
-The implementation starts with subdividing the dataset into three parts: training set, validation set and test. The validation set give us the opportunity to check which matrix rank enhance the performance. In fact, a cross validation step is computed. Then the model is re-trained and tested with the test set. The RMSE calculation is implemented by another function called \texttt{compute\_error()}.
+The implementation starts with subdividing the dataset into three parts: training, validation and test set. The validation set give us the opportunity to check which matrix rank enhance the performance. In fact, a cross validation step is computed. Then the model is re-trained and tested with the test set. The RMSE calculation is implemented by another function called \texttt{compute\_error()}.
   
 \section{Test}
-In this section we examine the performances of the models implemented in this work. The review RDD is sampled by $1/50$ from the original one; thus, the user RDD is formed by all the users that made a review in the sampled RDD. The UV Decomposition and ALS steps are tested iterating $2$ times each.  
+In this section we examine the performances of the models implemented in this work. The review RDD is sampled by $1/50$ from the original one; thus, the user RDD is formed by all the users that made a review in the sampled RDD \footnote{In case of users that had never made a review, the recommendations are based on the cold start situation explained in the section \ref{sec:basicrec}. Hence it is not convenient to introduce these customers.}. The UV Decomposition and ALS algorithms are tested iterating $2$ times each.  
 \begin{itemize}
     \item UV Decomposition (the rank used is equal to $2$): 
     \begin{itemize}
